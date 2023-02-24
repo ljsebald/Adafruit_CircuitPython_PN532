@@ -82,6 +82,7 @@ _RESPONSE_INLISTPASSIVETARGET = const(0x4B)
 _WAKEUP = const(0x55)
 
 _MIFARE_ISO14443A = const(0x00)
+_FELICA = const(0x01)
 
 # Mifare Commands
 MIFARE_CMD_AUTH_A = const(0x60)
@@ -93,6 +94,14 @@ MIFARE_CMD_DECREMENT = const(0xC0)
 MIFARE_CMD_INCREMENT = const(0xC1)
 MIFARE_CMD_STORE = const(0xC2)
 MIFARE_ULTRALIGHT_CMD_WRITE = const(0xA2)
+
+# FeliCa Commands
+FELICA_CMD_POLL = const(0x00)
+FELICA_CMD_REQUEST_SERVICE = const(0x02)
+FELICA_CMD_REQUEST_RESPONSE = const(0x04)
+FELICA_CMD_READ_NO_CRYPT = const(0x06)
+FELICA_CMD_WRITE_NO_CRYPT = const(0x08)
+FELICA_CMD_REQUEST_SYSTEM_CODE = const(0x0C)
 
 # Prefixes for NDEF Records (to identify record type)
 NDEF_URIPREFIX_NONE = const(0x00)
@@ -139,6 +148,10 @@ _GPIO_P32 = const(2)
 _GPIO_P33 = const(3)
 _GPIO_P34 = const(4)
 _GPIO_P35 = const(5)
+
+# FeliCa Constants
+FELICA_POLL_NONE = const(0x00)
+FELICA_POLL_SYSTEM_CODE = const(0x01)
 
 _ACK = b"\x00\x00\xFF\x00\xFF\x00"
 _FRAME_START = b"\x00\x00\xFF"
@@ -497,3 +510,35 @@ class PN532:
         if ntag2xx_block is not None:
             return ntag2xx_block[0:4]  # only 4 bytes per page
         return None
+
+    def felica_poll(self, system_code=0xffff,
+                    request_code=FELICA_POLL_SYSTEM_CODE, timeout=1):
+        params = bytearray(7)
+        params[0] = 0x01
+        params[1] = _FELICA
+        params[2] = FELICA_CMD_POLL
+        params[3] = (system_code >> 8) & 0xff
+        params[4] = (system_code & 0xff)
+        params[5] = request_code
+        params[6] = 0
+
+        response = self.call_function(_COMMAND_INLISTPASSIVETARGET,
+                                      params=params, response_length=22,
+                                      timeout=timeout)
+
+        # If no response is available return None to indicate no card is present.
+        if response is None:
+            return None
+        # Check only 1 card is present
+        if response[0] != 0x01:
+            raise RuntimeError("More than one card detected!")
+
+        # Grab the response length and the data we got back
+        len = response[2]
+        if len == 18:
+            return (response[4:12], response[12:20], None)
+        elif len == 20:
+            code = (response[20] << 8) | response[21]
+            return (response[4:12], response[12:20], code)
+        else:
+            raise RuntimeError("Unsupported FeliCa poll response length!")
