@@ -513,6 +513,11 @@ class PN532:
 
     def felica_poll(self, system_code=0xffff,
                     request_code=FELICA_POLL_SYSTEM_CODE, timeout=1):
+        """Wait for a FeliCa card to be available and return its UID when found.
+        Will wait up to timeout seconds and return None if no card is found,
+        otherwise a tuple containing a bytearray of the IDm, PMm, and
+        (optionally) the system code of the card will be returned.
+        """
         params = bytearray(7)
         params[0] = 0x01
         params[1] = _FELICA
