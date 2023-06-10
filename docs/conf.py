@@ -18,6 +18,7 @@ sys.path.insert(0, os.path.abspath(".."))
 # ones.
 extensions = [
     "sphinx.ext.autodoc",
+    "sphinxcontrib.jquery",
     "sphinx.ext.intersphinx",
     "sphinx.ext.napoleon",
     "sphinx.ext.todo",
@@ -38,6 +39,8 @@ intersphinx_mapping = {
     ),
     "CircuitPython": ("https://docs.circuitpython.org/en/latest/", None),
 }
+
+autoclass_content = "both"
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
